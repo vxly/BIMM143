@@ -1,0 +1,11 @@
+---
+title: "class13"
+output: html_document
+---
+
+```{r}
+library(ggplot2)
+
+read.csv()
+```
+

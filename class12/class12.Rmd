@@ -1,0 +1,236 @@
+---
+title: "class12"
+author: 'Vince (PID: A15422556)'
+date: "2/24/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+## Differential Expression Analysis
+
+Work on a complete differential expression analysis project using DESeq2.
+
+```{r setup1, message=FALSE}
+library(DESeq2)
+library(ggplot2)
+library(AnnotationDbi)
+library(org.Hs.eg.db)
+```
+
+
+# Input the count and metadata files
+
+```{r input}
+countData <- read.csv("GSE37704_featurecounts.csv", row.names = 1)
+colData <- read.csv("GSE37704_metadata.csv", row.names = 1)
+
+head(countData[,-1])
+head(colData)
+```
+
+
+> Q. Complete the code below to remove the troublesome first column from countData
+
+```{r}
+countData <- as.matrix(countData[,-1])
+head(countData)
+```
+
+
+Check correspondence of colData and countData
+
+```{r}
+all(colData$id == colnames(count))
+```
+
+
+> Q. Complete the code below to filter countData to exclude genes (i.e. rows) where we have 0 read count across all samples (i.e. columns).
+
+```{r}
+counts <- countData[rowSums(countData) !=0, ]
+head(counts)
+```
+
+
+# Run DESeq analysis
+
+```{r deseq}
+dds <-  DESeqDataSetFromMatrix(countData=counts,
+                             colData=colData,
+                             design=~condition)
+dds <-  DESeq(dds)
+
+res <- results(dds, contrast=c("condition", "hoxa1_kd", "control_sirna"))
+```
+
+
+> Q. Call the summary() function on your results to get a sense of how many genes are up or down-regulated at the default 0.1 p-value cutoff. 4349 up-regulated, 4396 down-regulated
+
+```{r}
+summary(res)
+```
+
+
+# Add annotation
+
+```{r}
+columns(org.Hs.eg.db)
+```
+
+
+> Q. Use the mapIDs() function multiple times to add SYMBOL, ENTREZID and GENENAME annotation to our results by completing the code below.
+
+```{r}
+library("AnnotationDbi")
+library("org.Hs.eg.db")
+
+columns(org.Hs.eg.db)
+
+res$symbol = mapIds(org.Hs.eg.db,
+                    keys=row.names(res), 
+                    keytype="ENSEMBL",
+                    column="SYMBOL",
+                    multiVals="first")
+
+res$entrez = mapIds(org.Hs.eg.db,
+                    keys=row.names(res),
+                    keytype="ENSEMBL",
+                    column="ENTREZID",
+                    multiVals="first")
+
+res$name =   mapIds(org.Hs.eg.db,
+                    keys=row.names(res),
+                    keytype="ENSEMBL",
+                    column="GENENAME",
+                    multiVals="first")
+
+head(res, 10)
+```
+
+
+# Volcano Plot
+
+Try ggplot
+
+```{r}
+tmp <- as.data.frame(res)
+
+ggplot(tmp) +
+  aes(log2FoldChange, -log(padj)) +
+  geom_point()
+```
+
+
+```{r}
+plot(res$log2FoldChange, -log(res$padj))
+```
+
+
+> Q. Improve this plot by completing the below code, which adds color and axis labels
+
+```{r volcano plot}
+# Make a color vector for all genes
+mycols <- rep("gray", nrow(res) )
+
+# Color red the genes with absolute fold change above 2
+mycols[ abs(res$log2FoldChange) > 2 ] <- "red"
+
+# Color blue those with adjusted p-value less than 0.01
+#  and absolute fold change more than 2
+inds <- (res$padj < 0.01) & (abs(res$log2FoldChange) > 2 )
+mycols[ inds ] <- "blue"
+
+plot( res$log2FoldChange, -log(res$padj), col=mycols, xlab="Log2(FoldChange)", ylab="-Log(P-value)" )
+```
+
+
+```{r enhanced volcano, message=FALSE}
+library(EnhancedVolcano)
+
+x <- as.data.frame(res)
+
+EnhancedVolcano(x,
+    lab = x$symbol,
+    x = 'log2FoldChange',
+    y = 'pvalue')
+```
+
+
+## Pathway Analysis and Gene Set Enrichment
+
+Which pathways and functions feature heavily in our differentially expressed genes. 
+```{r setup2, message=FALSE}
+library(pathview)
+library(gage)
+library(gageData)
+
+data(kegg.sets.hs)
+data(sigmet.idx.hs)
+
+# Focus on signaling and metabolic pathways only
+kegg.sets.hs = kegg.sets.hs[sigmet.idx.hs]
+
+# Examine the first 3 pathways
+head(kegg.sets.hs, 3)
+```
+
+
+Need a "vector of importance" as innput for GAGE that has ENTREZ IDs set as the names attribute.
+
+```{r}
+foldchanges <-  res$log2FoldChange
+names(foldchanges) <-  res$entrez
+```
+
+
+GAGE Pathway Analysis
+
+```{r}
+keggres <-  gage(foldchanges, gsets=kegg.sets.hs)
+attributes(keggres)
+head(keggres$less)
+```
+
+
+```{r}
+pathview(gene.data=foldchanges, pathway.id="hsa04110")
+```
+
+
+![](hsa04110.pathview.png)
+
+
+## Gene Ontology
+
+```{r}
+data(go.sets.hs)
+data(go.subs.hs)
+
+# Focus on Biological Process subset of GO
+gobpsets = go.sets.hs[go.subs.hs$BP]
+
+gobpres = gage(foldchanges, gsets=gobpsets, same.dir=TRUE)
+
+lapply(gobpres, head)
+```
+
+
+# Reactome Analysis
+
+> Q: What pathway has the most significant “Entities p-value”? Do the most significant pathways listed match your previous KEGG results? What factors could cause differences between the two methods? Endosomal/Vacuolar pathway. The pathways differ from the previous KEGG results. Using different criteria to determine pathways could cause differences.
+
+```{r}
+sig_genes <- res[res$padj <= 0.05 & !is.na(res$padj), "symbol"]
+print(paste("Total number of significant genes:", length(sig_genes)))
+
+write.table(sig_genes, file="significant_genes.txt", row.names=FALSE, col.names=FALSE, quote=FALSE)
+```
+
+
+
+# Save results
+
+```{r}
+write.csv(res, file="deseq_results.csv")
+```

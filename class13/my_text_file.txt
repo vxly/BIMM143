@@ -1,0 +1,7 @@
+Nano is a text editor.
+
+i-058155f200a18f39d
+
+ssh -i "BIMM143_vxly.pem" ubuntu@ec2-35-88-42-97.us-west-2.compute.amazonaws.com
+
+scp -i ~/Downloads/BIMM143_vxly.pem ubuntu@ec2-35-88-42-97.us-west-2.compute.amazonaws.com:~/work/mm-second.x.zebrafish.tsv .

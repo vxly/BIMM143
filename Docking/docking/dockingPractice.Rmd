@@ -1,0 +1,65 @@
+---
+title: "docking"
+output: html_document
+---
+
+
+> Q1: What is the name of the two non protein resid values in this structure? What does resid
+correspond to and how would you get a listing of all reside values in this structure? H2O, MK1
+
+```{r}
+library(bio3d)
+
+pdb <- get.pdb("1hsg")
+hiv <- read.pdb(pdb)
+```
+
+
+Extract the protein and ligand
+
+> Q2: Can you locate the binding site visually? Note that crystal structures normally lack hydrogen atoms, why? Hydrogen atoms would clutter around the protein making it hard to differentiate between the two
+
+> Q3: Look at the charges. Does it make sense (e.g. based on your knowledge of the
+physiochemical properties of amino acids)? No? It seems like regardless of the amino acid (basic, acidic, neutral, etc.) the charge is random (i.e. basic amino acids aren't all positively charged)
+
+```{r}
+prot <- trim.pdb(hiv, "protein")
+lig <- trim.pdb(hiv, "ligand")
+
+write.pdb(prot, file="1hsg_protein.pdb")
+write.pdb(lig, file="1hsg_ligand.pdb")
+```
+
+
+Inspect docking results
+
+> Q4: Qualitatively, how good are the docks? Is the crystal binding mode reproduced? Is it the
+best conformation according to AutoDock Vina? The docks look good. How do we interpret all.pdbqt? 
+
+```{r}
+res <- read.pdb("all.pdbqt", multi=TRUE)
+
+write.pdb(res, "results.pdb")
+```
+
+
+Calculate the RMSD between docking results
+
+> Q5: Quantitatively how good are the docks? Is the crystal binding mode reproduced within 1Å
+RMSD for all atoms?
+
+> Q6: How would you determine the RMSD for heavy atoms only (i.e. non hydrogen atoms)?
+HINT: The atom.select() function will be of help here along with the selection string “noh” for no
+hydrogens.
+
+```{r}
+res <- read.pdb("all.pdbqt", multi=TRUE)
+
+ori <- read.pdb("ligand")
+
+rmsd(ori, res)
+
+#Smaller RMSD = closer alignment
+#affinity (kcal/mol), dist from RMSD l.b., best mode RMSD u.b.
+```
+

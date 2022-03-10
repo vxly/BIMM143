@@ -1,0 +1,55 @@
+---
+title: "class10"
+author: 'Vince (PID: A15422556)'
+date: "2/17/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+MXL Population
+
+```{r}
+mxl <- read.csv("373531-SampleGenotypes-Homo_sapiens_Variation_Sample_rs8067378.csv")
+
+table(mxl$Genotype..forward.strand.) / nrow(mxl)
+```
+
+
+GBR Population
+
+```{r}
+gbr <- read.csv("373522-SampleGenotypes-Homo_sapiens_Variation_Sample_rs8067378.csv")
+
+table(gbr$Genotype..forward.strand.) / nrow(gbr)
+```
+
+
+## Expression by Genotype Analysis
+
+> Q13. Read file into R, determine sample size and median expression levels. Sample size for A/A is 108, for A/G is 233, and for G/G is 121. Median expression levels for A/A is 31.25, for A/G is 25.065, and for G/G is 20.074.
+
+```{r}
+x <- read.table("rs8067378_ENSG00000172057.6.txt")
+
+table(x$geno)
+
+print("G/G")
+summary(x[x$geno == "G/G", 3])
+print("A/G")
+summary(x[x$geno == "A/G", 3])
+print("A/A")
+summary(x[x$geno == "A/A", 3])
+```
+
+
+> Q14. Is the mean expression different based on genotype? Yes, the SNP seems to cause a decrease in expression of ORMDL3.
+
+## Summary Overview Figure
+
+```{r}
+library(ggplot2)
+
+ggplot(x, aes(geno, exp, fill=geno)) + geom_boxplot(notch=TRUE)
+```
+
