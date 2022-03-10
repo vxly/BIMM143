@@ -1,7 +1,7 @@
-## BIMM143
-Bioinformatics BIMM143 W22 at UC San Diego.
+# BIMM143
+Bioinformatics BIMM143 WI'22 at UC San Diego.
 
-# Class Content
+## Class Content
 - Class 05: [Data Visualization in R](https://github.com/vxly/BIMM143/blob/main/class05/class05.pdf)
 - Class 06: [R Functions](https://github.com/vxly/BIMM143/blob/main/class06/class06.pdf)
 - Class 07: [Introduction to Machine Learning](https://github.com/vxly/BIMM143/blob/main/class07/class07.pdf)
